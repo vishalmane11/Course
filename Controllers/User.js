@@ -1,0 +1,53 @@
+let express = require("express");
+let Router = express.Router();
+let Getvalue = require("../Services/Userervice/Getvalue");
+let register = require("../Services/Userervice/Register");
+let login = require("../Services/Userervice/Login");
+let logout = require("../Services/Userervice/Logout");
+let getmyprofile = require("../Services/Userervice/Getmyprofile");
+let changepassword = require("../Services/Userervice/Chagepassword");
+const Authenticated = require("../Middleware/Authenticated");
+const Updateprofile = require("../Services/Userervice/Updateprofile");
+const Updatepicture = require("../Services/Userervice/Updatepicture");
+const Resetpassword = require("../Services/Userervice/Resetpassword");
+const Reset = require("../Services/Userervice/Reset");
+const Addtoplaylist = require("../Services/Userervice/Addtoplaylist");
+const Removeplaylist = require("../Services/Userervice/Removeplaylist");
+const singleupload = require("../Middleware/Multer");
+const Alluser = require("../Services/Userervice/Alluser");
+const Admin = require("../Middleware/Admin");
+const Roleupdate = require("../Services/Userervice/Roleupdate");
+const Deleteuser = require("../Services/Userervice/Deleteuser");
+const Deleteprofile = require("../Services/Userervice/Deleteprofile");
+let User = require("../Schema/User");
+let Stats = require("../Schema/Stats");
+Router.get("/", Getvalue);
+Router.post("/register", singleupload, register);
+Router.post("/login", login);
+Router.post("/logout", logout);
+Router.get("/myprofile", Authenticated, getmyprofile);
+Router.post("/changepassword", Authenticated, changepassword);
+Router.post("/updateprofile", Authenticated, Updateprofile);
+Router.put("/updatepicture", singleupload, Authenticated, Updatepicture);
+// send token throug mail
+Router.post("/sendpassword", Authenticated, Resetpassword);
+// access token and verify it
+Router.put("/resetpassword/:token", Authenticated, Reset);
+Router.post("/addplaylist", Authenticated, Addtoplaylist);
+Router.delete("/removeplaylist", Authenticated, Removeplaylist);
+// admin route
+Router.get("/alluser", Authenticated, Admin, Alluser);
+Router.post("/roleupdate/:id", Authenticated, Admin, Roleupdate);
+Router.delete("/deleteuser/:id", Authenticated, Admin, Deleteuser);
+Router.delete("/deleteprofile", Authenticated, Admin, Deleteprofile);
+User.watch().on("change", async () => {
+  let stats = await Stats.find({}).sort({ createdAt: "desc" }).limit(1);
+  let subscibe = await User.find({ "subscription.status": "active" });
+  // console.log(subscibe.length);
+  console.log(stats[0]);
+  stats[0].subscribes = await subscibe.length;
+  stats[0].users = await User.countDocuments();
+  stats[0].createdAt = new Date(Date.now());
+  await stats[0].save();
+});
+module.exports = Router;
